@@ -154,23 +154,25 @@ class Store:
             )
             db.execute("UPDATE sessions SET updated_at=? WHERE id=?", (now, session_id))
 
-    def list_sessions(self) -> list[dict]:
+    def list_sessions(self, limit: int = 100, offset: int = 0) -> list[dict]:
         with self.connection() as db:
             rows = db.execute(
                 "SELECT id, title, created_at, updated_at FROM sessions "
-                "ORDER BY updated_at DESC LIMIT 100"
+                "ORDER BY updated_at DESC LIMIT ? OFFSET ?",
+                (limit, offset),
             ).fetchall()
         return [dict(row) for row in rows]
 
-    def history(self, session_id: str) -> list[dict]:
+    def history(self, session_id: str, limit: int = 100, before_id: int | None = None) -> list[dict]:
         self.session(session_id)
         with self.connection() as db:
             rows = db.execute(
                 "SELECT id, role, content, created_at FROM messages "
-                "WHERE session_id=? ORDER BY id",
-                (session_id,),
+                "WHERE session_id=? AND (? IS NULL OR id<?) "
+                "ORDER BY id DESC LIMIT ?",
+                (session_id, before_id, before_id, limit),
             ).fetchall()
-        return [dict(row) for row in rows]
+        return [dict(row) for row in reversed(rows)]
 
 
 class Model:
@@ -340,23 +342,41 @@ class ApiHandler(BaseHTTPRequestHandler):
         return body
 
     def do_GET(self) -> None:
-        if self.path == "/health":
+        parsed = urllib.parse.urlsplit(self.path)
+        path = parsed.path
+        query = urllib.parse.parse_qs(parsed.query)
+        if path == "/health":
             self.send_json(200, {"status": "ok"})
             return
         if not self.authorize():
             return
         try:
-            if self.path == "/v1/models":
+            if path == "/v1/models":
                 self.send_json(200, {"object": "list", "data": [{"id": MODEL_NAME, "object": "model", "context_length": CONTEXT_TOKENS}]})
-            elif self.path == "/api/sessions":
-                self.send_json(200, {"sessions": self.assistant.store.list_sessions()})
-            elif self.path.startswith("/api/sessions/") and self.path.endswith("/messages"):
-                session_id = self.path.split("/")[3]
-                self.send_json(200, {"messages": self.assistant.store.history(session_id)})
+            elif path == "/api/sessions":
+                limit = self.query_int(query, "limit", 100, 1, 100)
+                offset = self.query_int(query, "offset", 0, 0, 1000000)
+                self.send_json(200, {"sessions": self.assistant.store.list_sessions(limit, offset)})
+            elif path.startswith("/api/sessions/") and path.endswith("/messages"):
+                session_id = path.split("/")[3]
+                limit = self.query_int(query, "limit", 100, 1, 100)
+                before_id = self.query_int(query, "before_id", 0, 0, 2147483647) or None
+                self.send_json(200, {"messages": self.assistant.store.history(session_id, limit, before_id)})
             else:
                 self.send_json(404, {"error": "Not found"})
         except ClientError as exc:
             self.send_json(exc.status, {"error": str(exc)})
+
+    @staticmethod
+    def query_int(query: dict, name: str, default: int, minimum: int, maximum: int) -> int:
+        raw = query.get(name, [str(default)])
+        try:
+            value = int(raw[0])
+        except (ValueError, IndexError) as exc:
+            raise ClientError(f"Invalid {name}") from exc
+        if not minimum <= value <= maximum:
+            raise ClientError(f"{name} must be between {minimum} and {maximum}")
+        return value
 
     def do_POST(self) -> None:
         if not self.authorize():

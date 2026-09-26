@@ -96,7 +96,7 @@ curl -sS http://127.0.0.1:8765/api/sessions/SESSION_ID/chat \
   -d '{"input":"Continue our conversation"}'
 ```
 
-For a standard OpenAI client, `POST /v1/chat/completions` accepts its normal text `messages` array. That route is stateless unless you add the optional `session_id` field. `GET /v1/models`, `GET /api/sessions`, and `GET /api/sessions/{id}/messages` are also available. Requests with `stream: true` return a clear error in this version.
+For a standard OpenAI client, `POST /v1/chat/completions` accepts its normal text `messages` array. That route is stateless unless you add the optional `session_id` field. `GET /v1/models`, `GET /api/sessions`, and `GET /api/sessions/{id}/messages` are also available. Session lists accept `limit` and `offset`; message history accepts `limit` and `before_id` (the oldest returned message ID). Both endpoints return at most 100 rows per call to protect the Pi's RAM. Requests with `stream: true` return a clear error in this version.
 
 An OpenAI SDK client can use `base_url="http://127.0.0.1:8765/v1"`, `model="pi-local-assistant"`, and your private API key. The SDK runs on the calling device, not on the Pi.
 

@@ -89,6 +89,16 @@ class AssistantTests(unittest.TestCase):
             Store(shared / "sessions.sqlite3")
         self.assertEqual(os.stat(shared).st_mode & 0o777, 0o755)
 
+    def test_history_is_paginated_to_bound_memory(self):
+        session_id = self.store.create()
+        for _ in range(60):
+            self.store.save_turn(session_id, "question", "answer")
+        page = self.store.history(session_id)
+        self.assertEqual(len(page), 100)
+        older = self.store.history(session_id, before_id=page[0]["id"])
+        self.assertEqual(len(older), 20)
+        self.assertLess(older[-1]["id"], page[0]["id"])
+
 
 if __name__ == "__main__":
     unittest.main()
