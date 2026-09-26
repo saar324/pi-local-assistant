@@ -31,7 +31,7 @@ cd pi-local-assistant
 bash scripts/setup_pi.sh
 ```
 
-`setup_pi.sh` builds a pinned `llama.cpp` revision for ARMv7 and downloads a pinned, checksum-verified [Qwen3.5-0.8B Q4_K_M GGUF](https://huggingface.co/bartowski/Qwen_Qwen3.5-0.8B-GGUF). The model, build tree, and conversation history stay outside this repository. The model is Apache 2.0 licensed; this repository does not redistribute its weights.
+`setup_pi.sh` builds a pinned `llama.cpp` revision for ARMv7 and downloads a pinned, checksum-verified [Qwen3.5-0.8B Q4_K_M GGUF](https://huggingface.co/bartowski/Qwen_Qwen3.5-0.8B-GGUF). Exact model details are in [MODEL.md](MODEL.md). The model, build tree, and conversation history stay outside this repository. The model is Apache 2.0 licensed; this repository does not redistribute its weights.
 
 Start the model in one terminal:
 
@@ -97,6 +97,8 @@ curl -sS http://127.0.0.1:8765/api/sessions/SESSION_ID/chat \
 ```
 
 For a standard OpenAI client, `POST /v1/chat/completions` accepts its normal text `messages` array. That route is stateless unless you add the optional `session_id` field. `GET /v1/models`, `GET /api/sessions`, and `GET /api/sessions/{id}/messages` are also available. Requests with `stream: true` return a clear error in this version.
+
+An OpenAI SDK client can use `base_url="http://127.0.0.1:8765/v1"`, `model="pi-local-assistant"`, and your private API key. The SDK runs on the calling device, not on the Pi.
 
 ## Private data and safety
 
