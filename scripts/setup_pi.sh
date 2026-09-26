@@ -29,6 +29,7 @@ cmake -S "$llama_dir" -B "$llama_dir/build" \
   -DGGML_NATIVE=OFF \
   -DGGML_CPU_ARM_ARCH=armv7-a+neon-vfpv4 \
   -DGGML_OPENMP=OFF \
+  -DCMAKE_CXX_STANDARD_LIBRARIES=-latomic \
   -DLLAMA_BUILD_TESTS=OFF \
   -DLLAMA_BUILD_EXAMPLES=OFF \
   -DLLAMA_BUILD_SERVER=ON

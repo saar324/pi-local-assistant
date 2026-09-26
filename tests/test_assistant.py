@@ -7,8 +7,9 @@ import urllib.error
 import urllib.request
 from http.server import ThreadingHTTPServer
 from pathlib import Path
+from unittest.mock import patch
 
-from pi_assistant import ApiHandler, Assistant, Store, token_estimate, INPUT_BUDGET
+from pi_assistant import ApiHandler, Assistant, ClientError, Store, api_key, token_estimate, INPUT_BUDGET
 
 
 class FakeModel:
@@ -98,6 +99,17 @@ class AssistantTests(unittest.TestCase):
         older = self.store.history(session_id, before_id=page[0]["id"])
         self.assertEqual(len(older), 20)
         self.assertLess(older[-1]["id"], page[0]["id"])
+
+    def test_invalid_session_id_is_rejected(self):
+        with self.assertRaisesRegex(ClientError, "Invalid session ID"):
+            self.store.session({"not": "an ID"})
+
+    def test_systemd_credential_stays_out_of_configuration(self):
+        credentials_dir = Path(self.temp.name) / "credentials"
+        credentials_dir.mkdir()
+        (credentials_dir / "api_key").write_text("private-test-key\n")
+        with patch.dict(os.environ, {"CREDENTIALS_DIRECTORY": str(credentials_dir)}, clear=True):
+            self.assertEqual(api_key(), "private-test-key")
 
 
 if __name__ == "__main__":

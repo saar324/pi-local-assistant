@@ -47,6 +47,8 @@ python3 pi_assistant.py chat
 
 The CLI prints a session ID. List saved conversations with `python3 pi_assistant.py sessions`, then resume one with `python3 pi_assistant.py chat --session-id ID`.
 
+Once the model and API both work, `bash scripts/install_services.sh` installs private systemd services that start on boot. The generated unit files and API key live on the Pi, outside this repository. The model service requests an 820 MiB RAM cap and 300 MiB swap cap by default; override these when installing with `PI_MODEL_MEMORY_MAX`, `PI_MODEL_MEMORY_HIGH`, and `PI_MODEL_SWAP_MAX` if your Pi needs different limits. These limits require the Linux memory cgroup controller. If `cat /sys/fs/cgroup/cgroup.controllers` does not show `memory`, append `cgroup_enable=memory cgroup_memory=1` to the single line in `/boot/firmware/cmdline.txt` (or `/boot/cmdline.txt` on older images), then reboot. Check the services with `systemctl status pi-local-model pi-local-api`.
+
 ## Run the API
 
 Create a private key on the Pi, outside this repository:

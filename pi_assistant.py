@@ -57,6 +57,17 @@ def data_path() -> Path:
     return base / "pi-local-assistant" / "sessions.sqlite3"
 
 
+def api_key() -> str:
+    key = os.environ.get("PI_ASSISTANT_API_KEY", "")
+    credentials_dir = os.environ.get("CREDENTIALS_DIRECTORY")
+    if not key and credentials_dir:
+        try:
+            key = (Path(credentials_dir) / "api_key").read_text(encoding="utf-8").strip()
+        except OSError:
+            pass
+    return key
+
+
 class Store:
     def __init__(self, path: Path):
         self.path = path
@@ -122,6 +133,8 @@ class Store:
         return session_id
 
     def session(self, session_id: str) -> dict:
+        if not isinstance(session_id, str) or len(session_id) != 32 or any(c not in "0123456789abcdef" for c in session_id):
+            raise ClientError("Invalid session ID")
         with self.connection() as db:
             row = db.execute("SELECT * FROM sessions WHERE id=?", (session_id,)).fetchone()
         if row is None:
@@ -236,8 +249,9 @@ class Assistant:
             if not rows:
                 raise ClientError("Message is too large for this model's context", 413)
 
-            # Compact old messages in bounded batches. Preserve the latest turn.
-            candidates = rows[:-2] if len(rows) > 2 else rows
+            # Compact old messages in bounded batches. Keep two recent turns when possible.
+            keep_recent = 4 if len(rows) > 4 else 2
+            candidates = rows[:-keep_recent] if len(rows) > keep_recent else rows[:2]
             batch: list[dict] = []
             batch_prompt: list[dict[str, str]] | None = None
             for count in range(2, len(candidates) + 1, 2):
@@ -441,7 +455,7 @@ def main() -> None:
             print(session["id"], session["title"])
         return
     if args.command == "serve":
-        key = os.environ.get("PI_ASSISTANT_API_KEY", "")
+        key = api_key()
         if len(key) < 24:
             parser.error("set PI_ASSISTANT_API_KEY to a private random value of at least 24 characters")
         handler = type("BoundHandler", (ApiHandler,), {"assistant": assistant, "api_key": key})

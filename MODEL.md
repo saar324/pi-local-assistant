@@ -16,3 +16,5 @@ The setup script downloads this exact model and checks its SHA-256. The reposito
 The Pi 2 configuration starts with a 2,048-token context, one inference slot, two CPU threads, and a maximum of 256 output tokens. These are conservative resource settings for 1 GB RAM. The API handles text only; this setup does not include a vision projector or speech model.
 
 This is a small experimental assistant. Its summaries and answers can be inaccurate, especially after repeated compaction. Full conversation text remains in the private SQLite database for inspection and backup.
+
+On the Pi 2 Model B used for this project, a fresh 19-token prompt and 2-token answer took about 19 seconds: roughly 1.1 prompt tokens/s and 0.56 generated tokens/s. A saved-session one-word reply took about 50 seconds because its system prompt is longer. These are observed examples, not a general speed guarantee. The model loaded and answered with the 2-thread, 2,048-token configuration above.
