@@ -221,6 +221,7 @@ class Model:
                 raise ValueError("empty model answer")
         except (KeyError, IndexError, TypeError, ValueError) as exc:
             raise BackendError("Local model returned an invalid answer") from exc
+        result["model"] = MODEL_NAME
         return result
 
 
