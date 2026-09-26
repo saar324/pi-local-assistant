@@ -1,6 +1,7 @@
 "use strict";
 
 const $ = (id) => document.getElementById(id);
+const keyStorageName = "pi-local-assistant-api-key";
 const events = [];
 let apiKey = "";
 let sessionId = "";
@@ -131,8 +132,18 @@ async function connect() {
     $("send").disabled = false;
     $("connection").textContent = `Connected · ${models.data?.[0]?.id || "Pi"}`;
     $("connection").classList.add("online");
+    try {
+      if ($("remember").checked) localStorage.setItem(keyStorageName, apiKey);
+      else localStorage.removeItem(keyStorageName);
+    } catch (_) {
+      status("Connected, but this browser cannot save the key.");
+      return;
+    }
     status("Ready");
   } catch (error) {
+    if (error.message === "Unauthorized") {
+      try { localStorage.removeItem(keyStorageName); } catch (_) { /* browser storage unavailable */ }
+    }
     $("connection").textContent = "Connection failed";
     $("connection").classList.remove("online");
     status(error.message);
@@ -196,6 +207,11 @@ async function sendMessage(event) {
 
 $("connect").addEventListener("click", connect);
 $("key").addEventListener("keydown", (event) => { if (event.key === "Enter") connect(); });
+$("remember").addEventListener("change", () => {
+  if (!$("remember").checked) {
+    try { localStorage.removeItem(keyStorageName); } catch (_) { /* browser storage unavailable */ }
+  }
+});
 $("new-chat").addEventListener("click", () => { if (!busy) { sessionId = ""; $("sessions").value = ""; clearMessages(); status("New chat ready"); } });
 $("sessions").addEventListener("change", (event) => { if (!busy) loadSession(event.target.value); });
 $("chat-form").addEventListener("submit", sendMessage);
@@ -205,3 +221,12 @@ $("prompt").addEventListener("keydown", (event) => {
     $("chat-form").requestSubmit();
   }
 });
+
+try {
+  const savedKey = localStorage.getItem(keyStorageName);
+  if (savedKey) {
+    $("key").value = savedKey;
+    $("remember").checked = true;
+    connect();
+  }
+} catch (_) { /* browser storage unavailable */ }

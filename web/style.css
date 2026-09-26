@@ -15,6 +15,8 @@ h3 { font-size: .9rem; margin-bottom: 10px; }
 .connection.online { color: #72e2c0; border-color: #287f6b; }
 .access { display: grid; grid-template-columns: auto minmax(220px, 1fr) auto; align-items: center; gap: 10px 14px; padding: 16px 18px; background: #15212c; border: 1px solid #2b3c4a; border-radius: 16px; margin-bottom: 18px; }
 .access p { grid-column: 2 / 4; font-size: .8rem; color: #a8b7c6; margin: 0; }
+.access .remember { grid-column: 2 / 4; display: flex; align-items: center; gap: 9px; font-size: .81rem; font-weight: 500; }
+.access .remember input { width: 15px; height: 15px; margin: 0; accent-color: #72e2c0; }
 label { font-size: .83rem; font-weight: 650; color: #cbd9e3; }
 input, select, textarea, button { font: inherit; }
 input, select, textarea { width: 100%; background: #0d1720; color: #edf3f8; border: 1px solid #344857; border-radius: 10px; padding: 11px 12px; outline: none; }
@@ -48,4 +50,4 @@ form label { display: block; margin-bottom: 8px; }
 pre { margin: 0; padding: 13px; border-radius: 10px; background: #09131c; border: 1px solid #263746; color: #cce8df; overflow: auto; max-height: 260px; white-space: pre-wrap; overflow-wrap: anywhere; font: .79rem/1.5 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
 footer { text-align: center; font-size: .76rem; margin-top: 20px; }
 @media (max-width: 900px) { main { grid-template-columns: 1fr; } .messages { height: 360px; } }
-@media (max-width: 580px) { .shell { padding: 18px 12px; } header { align-items: start; flex-direction: column; } .access { grid-template-columns: 1fr; } .access p { grid-column: 1; } .session-row { grid-template-columns: 1fr; } }
+@media (max-width: 580px) { .shell { padding: 18px 12px; } header { align-items: start; flex-direction: column; } .access { grid-template-columns: 1fr; } .access p, .access .remember { grid-column: 1; } .session-row { grid-template-columns: 1fr; } }

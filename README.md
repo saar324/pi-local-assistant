@@ -111,7 +111,7 @@ With the services running, keep an SSH tunnel open from your computer:
 ssh -N -L 8765:127.0.0.1:8765 user@raspberrypi.local
 ```
 
-Open `http://127.0.0.1:8765/` in a browser. Retrieve the key with `ssh user@raspberrypi.local 'cat ~/.local/share/pi-local-assistant/api.key'`, paste it into the page, and click **Connect**. The page can start or resume saved sessions. Select an API call to inspect the browser's request JSON, the raw response, a parsed answer with usage and timings, and the exact JSON the harness sent to `llama.cpp`. The inspector requests this extra context with `"inspect": true`; normal API calls omit it. The authorization header is never shown in the inspector, and the page itself does not store the key.
+Open `http://127.0.0.1:8765/` in a browser. Retrieve the key with `ssh user@raspberrypi.local 'cat ~/.local/share/pi-local-assistant/api.key'`, paste it into the page, and click **Connect**. Check **Remember key in this browser** to save it in that browser's local storage and reconnect automatically after reload. The page can start or resume saved sessions. Select an API call to inspect the browser's request JSON, the raw response, a parsed answer with usage and timings, and the exact JSON the harness sent to `llama.cpp`. The inspector requests this extra context with `"inspect": true`; normal API calls omit it. The authorization header is never shown in the inspector, and the key is never included in the repository.
 
 ## Private data and safety
 
