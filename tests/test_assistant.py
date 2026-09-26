@@ -81,6 +81,14 @@ class AssistantTests(unittest.TestCase):
             server.server_close()
             thread.join()
 
+    def test_rejects_shared_data_directory_without_changing_it(self):
+        shared = Path(self.temp.name) / "shared"
+        shared.mkdir(mode=0o755)
+        os.chmod(shared, 0o755)
+        with self.assertRaises(ValueError):
+            Store(shared / "sessions.sqlite3")
+        self.assertEqual(os.stat(shared).st_mode & 0o777, 0o755)
+
 
 if __name__ == "__main__":
     unittest.main()

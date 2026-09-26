@@ -60,8 +60,14 @@ def data_path() -> Path:
 class Store:
     def __init__(self, path: Path):
         self.path = path
+        existed = path.parent.exists()
         path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-        os.chmod(path.parent, 0o700)
+        if existed and os.stat(path.parent).st_mode & 0o077:
+            raise ValueError("The data directory must be private (mode 0700)")
+        if not existed:
+            os.chmod(path.parent, 0o700)
+        if path.exists():
+            os.chmod(path, 0o600)
         with self.connection() as db:
             db.executescript(
                 """
