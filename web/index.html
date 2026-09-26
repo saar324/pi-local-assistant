@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pi Local Assistant</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div>
+        <p class="eyebrow">RASPBERRY PI 2 · OFFLINE MODEL</p>
+        <h1>Pi Local Assistant</h1>
+        <p class="subhead">Chat with the Pi and inspect every API call.</p>
+      </div>
+      <span id="connection" class="connection">Enter your key to connect</span>
+    </header>
+
+    <section class="access" aria-label="API access">
+      <label for="key">Private API key</label>
+      <input id="key" type="password" autocomplete="off" spellcheck="false" placeholder="Paste the key from your Pi">
+      <button id="connect" type="button">Connect</button>
+      <p>This page does not save the key or show it in the trace. Reloading clears the connection.</p>
+    </section>
+
+    <main>
+      <section class="panel chat-panel" aria-label="Chat">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">CONVERSATION</p>
+            <h2>Chat</h2>
+          </div>
+          <button id="new-chat" class="secondary" type="button">New chat</button>
+        </div>
+        <div class="session-row">
+          <label for="sessions">Saved session</label>
+          <select id="sessions" disabled><option value="">New chat</option></select>
+        </div>
+        <div id="messages" class="messages" aria-live="polite">
+          <p class="empty">Connect, then send a message. The model can take a while to answer.</p>
+        </div>
+        <form id="chat-form">
+          <label for="prompt">Your message</label>
+          <textarea id="prompt" rows="3" placeholder="Ask something simple…" required></textarea>
+          <div class="send-row">
+            <span id="status">Ready</span>
+            <button id="send" type="submit" disabled>Send message</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel inspector" aria-label="API inspector">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">UNDER THE HOOD</p>
+            <h2>API inspector</h2>
+          </div>
+          <span id="http-status" class="http-status">No request yet</span>
+        </div>
+        <p class="hint">Select a call to see exactly what the browser sent, the raw reply, and the context sent to the model. The authorization header is hidden.</p>
+        <div id="requests" class="requests" aria-label="Recent API calls"></div>
+
+        <div class="trace-section">
+          <h3>Parsed result</h3>
+          <pre id="parsed-result">Send a message to see its answer and usage.</pre>
+        </div>
+        <div class="trace-section">
+          <h3>Request JSON <span id="request-path"></span></h3>
+          <pre id="request-json">No request yet.</pre>
+        </div>
+        <div class="trace-section">
+          <h3>Model request JSON</h3>
+          <p class="hint">The harness adds a system prompt and saved context before calling llama.cpp.</p>
+          <pre id="model-json">Available after a chat response.</pre>
+        </div>
+        <div class="trace-section">
+          <h3>Raw response</h3>
+          <pre id="response-raw">No response yet.</pre>
+        </div>
+      </section>
+    </main>
+    <footer>Runs on your Pi · API and model bound to 127.0.0.1 · No cloud calls</footer>
+  </div>
+</body>
+</html>

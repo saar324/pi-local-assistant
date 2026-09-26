@@ -56,6 +56,11 @@ class AssistantTests(unittest.TestCase):
         thread.start()
         base = f"http://127.0.0.1:{server.server_address[1]}"
         try:
+            with urllib.request.urlopen(base + "/") as response:
+                self.assertIn("Pi Local Assistant", response.read().decode())
+                self.assertIn("script-src 'self'", response.headers["Content-Security-Policy"])
+            with urllib.request.urlopen(base + "/app.js") as response:
+                self.assertIn("backend_request", response.read().decode())
             with self.assertRaises(urllib.error.HTTPError) as error:
                 urllib.request.urlopen(base + "/v1/models")
             self.assertEqual(error.exception.code, 401)
@@ -77,6 +82,21 @@ class AssistantTests(unittest.TestCase):
             with urllib.request.urlopen(chat_request) as response:
                 self.assertEqual(json.load(response)["output"], "A local answer.")
             self.assertEqual(len(self.store.history(session_id)), 2)
+            inspected = urllib.request.Request(
+                base + "/v1/chat/completions",
+                data=json.dumps({"model": "pi-local-assistant", "session_id": session_id, "inspect": True,
+                                 "messages": [{"role": "user", "content": "Explain briefly"}]}).encode(),
+                headers={"Authorization": "Bearer " + "a" * 24, "Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(inspected) as response:
+                result = json.load(response)
+            self.assertEqual(result["session_id"], session_id)
+            self.assertEqual(result["choices"][0]["message"]["content"], "A local answer.")
+            model_request = result["inspection"]["backend_request"]
+            self.assertEqual(model_request["reasoning_effort"], "none")
+            self.assertEqual(model_request["messages"][-1]["content"], "Explain briefly")
+            self.assertEqual(len(self.store.history(session_id)), 4)
         finally:
             server.shutdown()
             server.server_close()

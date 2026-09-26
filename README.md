@@ -16,6 +16,7 @@ After the initial software and model downloads, inference and conversation stora
 - Use durable server-side sessions with `POST /api/sessions/{id}/chat` or an optional `session_id` field on chat completions.
 - Automatically compact old turns into a short summary while retaining the full transcript in SQLite.
 - Limit inference to one request at a time so concurrent calls cannot multiply model memory use.
+- Open a local browser page to chat and inspect the JSON exchanged with the API and model.
 
 The active context is finite, and generated summaries can lose details. Full transcripts persist until you delete them or run out of storage. The 0.8B model is useful for experimentation, but it is slow and much less capable than a desktop model. This version handles text and non-streaming requests only; it has no autonomous tools.
 
@@ -101,6 +102,16 @@ curl -sS http://127.0.0.1:8765/api/sessions/SESSION_ID/chat \
 For a standard OpenAI client, `POST /v1/chat/completions` accepts its normal text `messages` array. That route is stateless unless you add the optional `session_id` field. `GET /v1/models`, `GET /api/sessions`, and `GET /api/sessions/{id}/messages` are also available. Session lists accept `limit` and `offset`; message history accepts `limit` and `before_id` (the oldest returned message ID). Both endpoints return at most 100 rows per call to protect the Pi's RAM. Requests with `stream: true` return a clear error in this version.
 
 An OpenAI SDK client can use `base_url="http://127.0.0.1:8765/v1"`, `model="pi-local-assistant"`, and your private API key. The SDK runs on the calling device, not on the Pi.
+
+## Browser chat and API inspector
+
+With the services running, keep an SSH tunnel open from your computer:
+
+```bash
+ssh -N -L 8765:127.0.0.1:8765 user@raspberrypi.local
+```
+
+Open `http://127.0.0.1:8765/` in a browser. Retrieve the key with `ssh user@raspberrypi.local 'cat ~/.local/share/pi-local-assistant/api.key'`, paste it into the page, and click **Connect**. The page can start or resume saved sessions. Select an API call to inspect the browser's request JSON, the raw response, a parsed answer with usage and timings, and the exact JSON the harness sent to `llama.cpp`. The inspector requests this extra context with `"inspect": true`; normal API calls omit it. The authorization header is never shown in the inspector, and the page itself does not store the key.
 
 ## Private data and safety
 

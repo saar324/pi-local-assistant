@@ -195,8 +195,9 @@ class Model:
             raise ValueError("The model server must use loopback HTTP")
         self.url = base_url.rstrip("/") + "/v1/chat/completions"
 
-    def generate(self, messages: list[dict[str, str]], max_tokens: int = MAX_OUTPUT_TOKENS) -> dict:
-        payload = {
+    @staticmethod
+    def payload(messages: list[dict[str, str]], max_tokens: int = MAX_OUTPUT_TOKENS) -> dict:
+        return {
             "model": MODEL_NAME,
             "messages": messages,
             "max_tokens": max_tokens,
@@ -204,6 +205,9 @@ class Model:
             "stream": False,
             "reasoning_effort": "none",
         }
+
+    def generate(self, messages: list[dict[str, str]], max_tokens: int = MAX_OUTPUT_TOKENS) -> dict:
+        payload = self.payload(messages, max_tokens)
         request = urllib.request.Request(
             self.url,
             data=json.dumps(payload).encode("utf-8"),
@@ -274,7 +278,7 @@ class Assistant:
                 raise BackendError("Local model could not summarize the conversation")
             self.store.save_summary(session_id, summary, batch[-1]["id"])
 
-    def chat(self, session_id: str, user: str) -> str:
+    def chat_result(self, session_id: str, user: str) -> tuple[dict, list[dict[str, str]]]:
         if not isinstance(user, str) or not user.strip():
             raise ClientError("A non-empty user message is required")
         if token_estimate([{"content": user}]) > 700:
@@ -289,9 +293,13 @@ class Assistant:
             result = self.model.generate(context)
             answer = result["choices"][0]["message"]["content"].strip()
             self.store.save_turn(session_id, user, answer)
-            return answer
+            return result, context
         finally:
             self.lock.release()
+
+    def chat(self, session_id: str, user: str) -> str:
+        result, _ = self.chat_result(session_id, user)
+        return result["choices"][0]["message"]["content"].strip()
 
     def complete(self, messages: list[dict], max_tokens: int) -> dict:
         if not isinstance(messages, list) or not messages:
@@ -330,6 +338,19 @@ class ApiHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.end_headers()
+        self.wfile.write(body)
+
+    def send_static(self, filename: str, content_type: str) -> None:
+        body = (Path(__file__).resolve().parent / "web" / filename).read_bytes()
+        self.send_response(200)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header("Content-Security-Policy", "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'")
         self.end_headers()
         self.wfile.write(body)
 
@@ -360,6 +381,14 @@ class ApiHandler(BaseHTTPRequestHandler):
         parsed = urllib.parse.urlsplit(self.path)
         path = parsed.path
         query = urllib.parse.parse_qs(parsed.query)
+        static_files = {
+            "/": ("index.html", "text/html; charset=utf-8"),
+            "/app.js": ("app.js", "text/javascript; charset=utf-8"),
+            "/style.css": ("style.css", "text/css; charset=utf-8"),
+        }
+        if path in static_files:
+            self.send_static(*static_files[path])
+            return
         if path == "/health":
             self.send_json(200, {"status": "ok"})
             return
@@ -411,20 +440,17 @@ class ApiHandler(BaseHTTPRequestHandler):
             elif self.path == "/v1/chat/completions":
                 if body.get("stream", False):
                     raise ClientError("Streaming is not supported in this version")
+                if not isinstance(body.get("inspect", False), bool):
+                    raise ClientError("inspect must be a boolean")
                 session_id = body.get("session_id")
                 if session_id is not None:
                     messages = body.get("messages")
                     if not isinstance(messages, list) or not messages or not isinstance(messages[-1], dict) or messages[-1].get("role") != "user":
                         raise ClientError("A session request needs a final user message")
-                    answer = self.assistant.chat(session_id, messages[-1].get("content"))
-                    result = {
-                        "id": "chatcmpl-" + uuid.uuid4().hex,
-                        "object": "chat.completion",
-                        "created": int(time.time()),
-                        "model": MODEL_NAME,
-                        "choices": [{"index": 0, "message": {"role": "assistant", "content": answer}, "finish_reason": "stop"}],
-                        "session_id": session_id,
-                    }
+                    result, model_messages = self.assistant.chat_result(session_id, messages[-1].get("content"))
+                    result["session_id"] = session_id
+                    if body.get("inspect"):
+                        result["inspection"] = {"backend_request": Model.payload(model_messages)}
                 else:
                     result = self.assistant.complete(body.get("messages"), body.get("max_tokens", MAX_OUTPUT_TOKENS))
                 self.send_json(200, result)
